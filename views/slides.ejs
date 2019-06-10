@@ -1,0 +1,150 @@
+<%- include('./layouts/header.ejs')%>
+
+  <div class="main">
+    <%- include('./layouts/navbar.ejs')%>
+    <div class="container-fluid">
+      <div class="page-title">
+        <h1>图片轮播</h1>
+      </div>
+      <!-- 有错误信息时展示 -->
+      <!-- <div class="alert alert-danger">
+        <strong>错误！</strong>发生XXX错误
+      </div> -->
+      <div class="row">
+        <div class="col-md-4">
+          <form id="myForm">
+            <h2>添加新轮播内容</h2>
+            <div class="form-group">
+              <label for="image">图片</label>
+              <!-- show when image chose -->
+              <img class="help-block thumbnail" style="display: none">
+              <input id="image" class="form-control"  type="file">
+              
+            </div>
+            <div class="form-group">
+              <label for="text">文本</label>
+              <input id="text" class="form-control" name="text" type="text" placeholder="文本">
+            </div>
+            <div class="form-group">
+              <label for="link">链接</label>
+              <input id="link" class="form-control" name="link" type="text" placeholder="链接">
+            </div>
+            <div class="form-group">
+              <button class="btn btn-primary" type="submit">添加</button>
+            </div>
+          </form>
+        </div>
+        <div class="col-md-8">
+          <div class="page-action">
+            <!-- show when multiple checked -->
+            <a class="btn btn-danger btn-sm" href="javascript:;" style="display: none">批量删除</a>
+          </div>
+          <table class="table table-striped table-bordered table-hover">
+            <thead>
+              <tr>
+                <th class="text-center" width="40"><input type="checkbox"></th>
+                <th class="text-center">图片</th>
+                <th>文本</th>
+                <th>链接</th>
+                <th class="text-center" width="100">操作</th>
+              </tr>
+            </thead>
+            <tbody>
+              
+             
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <%- include('./layouts/aside.ejs')%>
+
+  <%- include('./layouts/footer.ejs')%> 
+
+  <script type="text/template" id="slidesListTmp">
+    {{each data}}
+    <tr>
+       <td class="text-center"><input type="checkbox"></td>
+       <td class="text-center"><img class="slide" src="{{$value.image}}"></td>
+       <td>{{$value.text}}</td>
+       <td>{{$value.link}}</td>
+       <td class="text-center">
+       <a href="javascript:;" data-id="{{$index}}" class="btn btnDel btn-danger btn-xs">删除</a>
+       </td>
+    </tr>
+    {{/each}}
+  </script>
+
+  <script>
+  // 1. 发送ajax请求,去获取页面中的渲染数据
+  render()
+  function render(){
+    $.ajax({
+      type:'get',
+      url:'/getSlidesData',
+      dataType:'json',
+      success:function(res){
+         if(res.code==0){
+           var htmlStr=template('slidesListTmp',res)
+           $('tbody').html(htmlStr)
+         }
+      }
+    })
+  }
+  // 2.上传轮播图
+  $("#image").on('change',function(){
+    var data=new FormData()
+    data.append('avatar', this.files[0]);
+    $.ajax({
+      type:'post',
+      url:'/uploadPostFile',
+      data:data,
+      contentType: false,
+      processData: false, 
+      dataType:'json',
+      success:function(res){
+        if(res && res.code==0){
+          $('.thumbnail').show().attr('src', res.src)
+          $('#image').after(`<input type="hidden" value="${res.src}" name="image">`)
+        }
+      }
+    })
+  })
+  
+  //3.添加轮播
+  $('#myForm').on('submit',function(event){
+    event.preventDefault();
+    $.ajax({
+      type:'post',
+      url:'/addNewSlides',
+      data:$(this).serialize(),
+      dataType:'json',
+      success:function(res){
+        if(res&&res.code==0){
+          render();// 重新渲染页面
+          $('input[name]').val('')
+          $('.thumbnail').hide()
+        }
+      }
+    })
+})
+   
+  //4.删除轮播
+  $("tbody").on('click','.btnDel',function(){
+     $.ajax({
+       type:'get',
+       url:'/delSlides',
+       data:{
+        index:$(this).data('id')
+       },
+       dataType:'json',
+       success:function(res){
+          if(res&&res.code==0){
+            render();
+         }
+       }
+     })
+  })
+  </script>
